@@ -1,0 +1,1139 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS EKS Cluster
+
+Resources:
+  
+  EKSCluster:
+    Type: AWS::EKS::Cluster
+    DeletionPolicy: Retain
+    Properties:
+      Name: sandbox-cluster
+      Version: "1.32"
+      RoleArn: "arn:aws:iam::767398111149:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS"
+      KubernetesNetworkConfig:
+        IpFamily: ipv4
+        ServiceIpv4Cidr: 10.100.0.0/16
+      ResourcesVpcConfig:
+        EndpointPrivateAccess: true
+        EndpointPublicAccess: true
+        PublicAccessCidrs:
+          - "223.237.168.149/32"
+        SecurityGroupIds:
+          - "sg-02e0affa752353c1a"
+        SubnetIds:
+          - "subnet-0c12641a01190da9c"
+          - "subnet-09a423c0a6bde4c32" 
+          - "subnet-0afa393c4041daa00"
+          - "subnet-04fd8d9586d4f33b8"
+      Tags:
+        - Key: cluster
+          Value: sandbox
+        - Key: provisionedby
+          Value: cloud-formation-template
+
+  EKSClusterAddOnsEFSCSI:
+    Type: AWS::EKS::Addon
+    DeletionPolicy: Retain
+    Properties:
+      AddonName: aws-efs-csi-driver
+      AddonVersion: "v2.1.3-eksbuild.1"
+      ClusterName: sandbox-cluster
+      ResolveConflicts: OVERWRITE
+
+  EKSClusterAddOnsEBSCSI:
+    Type: AWS::EKS::Addon
+    DeletionPolicy: Retain
+    Properties:
+      AddonName: aws-ebs-csi-driver
+      AddonVersion: "v1.38.1-eksbuild.2"
+      ClusterName: sandbox-cluster
+      ServiceAccountRoleArn: arn:aws:iam::767398111149:role/sandbox-cluster-ebs-csi-driver
+      ResolveConflicts: OVERWRITE
+
+  EKSClusterAddOnsVPCCNI:
+    Type: AWS::EKS::Addon
+    DeletionPolicy: Retain
+    Properties:
+      AddonName: vpc-cni
+      AddonVersion: "v1.19.2-eksbuild.1"
+      ClusterName: sandbox-cluster
+      ResolveConflicts: OVERWRITE
+
+  EKSClusterAddOnsKubeProxy:
+    Type: AWS::EKS::Addon
+    DeletionPolicy: Retain
+    Properties:
+      AddonName: kube-proxy
+      AddonVersion: "v1.30.6-eksbuild.3"
+      ClusterName: sandbox-cluster
+      ResolveConflicts: OVERWRITE
+
+  RTPNodeGroup:
+    Type: AWS::EKS::Nodegroup
+    DeletionPolicy: Delete
+    Properties:
+      ClusterName: sandbox-cluster
+      NodegroupName: general-worker-nodegroup-1
+      ScalingConfig:
+        MinSize: 1
+        DesiredSize: 1
+        MaxSize: 3
+      Subnets:
+        - "subnet-09a423c0a6bde4c32"
+        - "subnet-0afa393c4041daa00"
+      CapacityType: ON_DEMAND
+      NodeRole: arn:aws:iam::767398111149:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup
+      Tags:
+        provisionedby: CloudFormation
+        Environment: sandbox-cluster
+      Taints:
+        - Effect: NO_SCHEDULE
+          key: app
+          value: true
+      Version: "1.32"
+
+varshas ~/eksproject/eks-three-tier-archritecture/stacks $ mkdir eks
+varshas ~/eksproject/eks-three-tier-archritecture/stacks $ ls
+ec2     eks     network
+varshas ~/eksproject/eks-three-tier-archritecture/stacks $ cd network
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ nvim vpc-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ mv vpc-config.yaml network-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ ls
+network-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git add .
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git commit -m "Add: VPC"
+[networkconfig 65fcfa4] Add: VPC
+ Committer: Varsha S <varshas@Admins-MacBook-Air-5.local>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly. Run the
+following command and follow the instructions in your editor to edit
+your configuration file:
+
+    git config --global --edit
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 1 file changed, 14 insertions(+)
+ create mode 100644 stacks/network/network-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git push origin networkconfig
+Enumerating objects: 6, done.
+Counting objects: 100% (6/6), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (5/5), 602 bytes | 602.00 KiB/s, done.
+Total 5 (delta 0), reused 0 (delta 0), pack-reused 0
+To https://github.com/VarshaRajS/eks-three-tier-archritecture.git
+   b21de76..65fcfa4  networkconfig -> networkconfig
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git pull origin master --rebase
+fatal: couldn't find remote ref master
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git pull origin main --rebase
+remote: Enumerating objects: 1, done.
+remote: Counting objects: 100% (1/1), done.
+remote: Total 1 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
+Unpacking objects: 100% (1/1), 901 bytes | 450.00 KiB/s, done.
+From https://github.com/VarshaRajS/eks-three-tier-archritecture
+ * branch            main       -> FETCH_HEAD
+   b21de76..c2d216c  main       -> origin/main
+Updating 65fcfa4..c2d216c
+Fast-forward
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ nvim network-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ nvim network-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ cat network-config.yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Network configuration created using CloudFormation
+
+Resources:
+  myVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      Tags:
+       - Key: stack
+         Value: production
+
+  myPublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myVPC
+      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: "us-east-1a"
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: stack
+        Value: production
+
+
+
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ nvim network-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ cat network-config.yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Network configuration created using CloudFormation
+
+Resources:
+  myVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      Tags:
+       - Key: stack
+         Value: production
+
+  myPublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myVPC
+      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: "us-east-1a"
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: stack
+        Value: production
+
+  myPublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myVPC
+      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: "us-east-1b"
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: stack
+        Value: production
+
+  myPrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myVPC
+      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: "us-east-1a"
+      MapPublicIpOnLaunch: false
+      Tags:
+      - Key: stack
+        Value: production
+
+  myPrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myVPC
+      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: "us-east-1b"
+      MapPublicIpOnLaunch: false
+      Tags:
+      - Key: stack
+        Value: production
+
+
+
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ nvim network-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ cat network-config.yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Network configuration created using CloudFormation
+
+Resources:
+  myVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      Tags:
+       - Key: stack
+         Value: production
+
+  myInternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  myIGWAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref myVPC
+      InternetGatewayId: !Ref myInternetGateway
+
+  myPublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: "us-east-1a"
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: stack
+        Value: production
+
+  myPublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: "us-east-1b"
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: stack
+        Value: production
+
+  myPrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myVPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: "us-east-1a"
+      MapPublicIpOnLaunch: false
+      Tags:
+      - Key: stack
+        Value: production
+
+  myPrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myVPC
+      CidrBlock: 10.0.4.0/24
+      AvailabilityZone: "us-east-1b"
+      MapPublicIpOnLaunch: false
+      Tags:
+      - Key: stack
+        Value: production
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref myVPC
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref myInternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref myPublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref myPublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  # ✅ Elastic IP for NAT Gateway
+  NATGatewayEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  # ✅ NAT Gateway (placed in Public Subnet)
+  NATGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NATGatewayEIP.AllocationId
+      SubnetId: !Ref PublicSubnet1  # NAT must be in a public subnet
+      Tags:
+        - Key: stack
+          Value: production
+
+  # ✅ Private Route Table (Uses NAT Gateway)
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  RouteNATGateway:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref NATGateway
+
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable
+
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git add network-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git commit -m "Update network config"
+[networkconfig f4e8a5e] Update network config
+ Committer: Varsha S <varshas@Admins-MacBook-Air-5.local>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly. Run the
+following command and follow the instructions in your editor to edit
+your configuration file:
+
+    git config --global --edit
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 1 file changed, 118 insertions(+)
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git branch
+  main
+* networkconfig
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git push origin main networkconfig
+Enumerating objects: 9, done.
+Counting objects: 100% (9/9), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (5/5), 1.04 KiB | 1.04 MiB/s, done.
+Total 5 (delta 0), reused 0 (delta 0), pack-reused 0
+To https://github.com/VarshaRajS/eks-three-tier-archritecture.git
+   65fcfa4..f4e8a5e  networkconfig -> networkconfig
+ ! [rejected]        main -> main (non-fast-forward)
+error: failed to push some refs to 'https://github.com/VarshaRajS/eks-three-tier-archritecture.git'
+hint: Updates were rejected because a pushed branch tip is behind its remote
+hint: counterpart. Check out this branch and integrate the remote changes
+hint: (e.g. 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git pull origin master --rebase
+fatal: couldn't find remote ref master
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git pull origin main --rebase
+From https://github.com/VarshaRajS/eks-three-tier-archritecture
+ * branch            main       -> FETCH_HEAD
+Current branch networkconfig is up to date.
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git push origin main networkconfig
+To https://github.com/VarshaRajS/eks-three-tier-archritecture.git
+ ! [rejected]        main -> main (non-fast-forward)
+error: failed to push some refs to 'https://github.com/VarshaRajS/eks-three-tier-archritecture.git'
+hint: Updates were rejected because a pushed branch tip is behind its remote
+hint: counterpart. Check out this branch and integrate the remote changes
+hint: (e.g. 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ cat network-config.yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Network configuration created using CloudFormation
+
+Resources:
+  myVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      Tags:
+       - Key: stack
+         Value: production
+
+  myInternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  myIGWAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref myVPC
+      InternetGatewayId: !Ref myInternetGateway
+
+  myPublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: "us-east-1a"
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: stack
+        Value: production
+
+  myPublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myVPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: "us-east-1b"
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: stack
+        Value: production
+
+  myPrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myVPC
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: "us-east-1a"
+      MapPublicIpOnLaunch: false
+      Tags:
+      - Key: stack
+        Value: production
+
+  myPrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref myVPC
+      CidrBlock: 10.0.4.0/24
+      AvailabilityZone: "us-east-1b"
+      MapPublicIpOnLaunch: false
+      Tags:
+      - Key: stack
+        Value: production
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref myVPC
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref myInternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref myPublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref myPublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  # ✅ Elastic IP for NAT Gateway
+  NATGatewayEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  # ✅ NAT Gateway (placed in Public Subnet)
+  NATGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NATGatewayEIP.AllocationId
+      SubnetId: !Ref PublicSubnet1  # NAT must be in a public subnet
+      Tags:
+        - Key: stack
+          Value: production
+
+  # ✅ Private Route Table (Uses NAT Gateway)
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
+  RouteNATGateway:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref NATGateway
+
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable
+
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git checkout master
+error: pathspec 'master' did not match any file(s) known to git
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git checkout main
+Switched to branch 'main'
+Your branch is behind 'origin/main' by 2 commits, and can be fast-forwarded.
+  (use "git pull" to update your local branch)
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git pull
+Updating b21de76..c2d216c
+Fast-forward
+ stacks/network/network-config.yaml | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+ create mode 100644 stacks/network/network-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ cat network-config.yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Network configuration created using CloudFormation
+
+Resources:
+  myVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      Tags:
+       - Key: stack
+         Value: production
+
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ rm network-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ nvim network-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git add network-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git commit -m "Update network config"
+[main b83eee0] Update network config
+ Committer: Varsha S <varshas@Admins-MacBook-Air-5.local>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly. Run the
+following command and follow the instructions in your editor to edit
+your configuration file:
+
+    git config --global --edit
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 1 file changed, 118 insertions(+)
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git push origin main
+Enumerating objects: 9, done.
+Counting objects: 100% (9/9), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (5/5), 1.04 KiB | 1.04 MiB/s, done.
+Total 5 (delta 0), reused 0 (delta 0), pack-reused 0
+To https://github.com/VarshaRajS/eks-three-tier-archritecture.git
+   c2d216c..b83eee0  main -> main
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ rm network-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ nvim network-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git checkout main
+M	stacks/network/network-config.yaml
+Already on 'main'
+Your branch is up to date with 'origin/main'.
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git pull
+Already up to date.
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git add network-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git commit -m "Update network config"
+[main 4e02ca6] Update network config
+ Committer: Varsha S <varshas@Admins-MacBook-Air-5.local>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly. Run the
+following command and follow the instructions in your editor to edit
+your configuration file:
+
+    git config --global --edit
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 1 file changed, 23 insertions(+), 24 deletions(-)
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git push origin main
+Enumerating objects: 9, done.
+Counting objects: 100% (9/9), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (5/5), 537 bytes | 537.00 KiB/s, done.
+Total 5 (delta 1), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (1/1), completed with 1 local object.
+To https://github.com/VarshaRajS/eks-three-tier-archritecture.git
+   b83eee0..4e02ca6  main -> main
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ nvim network-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ nvim network-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git add network-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git commit -m "Update network config"
+[main 024dc18] Update network config
+ Committer: Varsha S <varshas@Admins-MacBook-Air-5.local>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly. Run the
+following command and follow the instructions in your editor to edit
+your configuration file:
+
+    git config --global --edit
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 1 file changed, 17 insertions(+)
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git push origin main
+To https://github.com/VarshaRajS/eks-three-tier-archritecture.git
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to 'https://github.com/VarshaRajS/eks-three-tier-archritecture.git'
+hint: Updates were rejected because the remote contains work that you do
+hint: not have locally. This is usually caused by another repository pushing
+hint: to the same ref. You may want to first integrate the remote changes
+hint: (e.g., 'git pull ...') before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git checkout main
+Already on 'main'
+Your branch is ahead of 'origin/main' by 1 commit.
+  (use "git push" to publish your local commits)
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git pull
+remote: Enumerating objects: 5, done.
+remote: Counting objects: 100% (5/5), done.
+remote: Compressing objects: 100% (3/3), done.
+remote: Total 3 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
+Unpacking objects: 100% (3/3), 2.08 KiB | 533.00 KiB/s, done.
+From https://github.com/VarshaRajS/eks-three-tier-archritecture
+   4e02ca6..5014ed9  main       -> origin/main
+hint: You have divergent branches and need to specify how to reconcile them.
+hint: You can do so by running one of the following commands sometime before
+hint: your next pull:
+hint:
+hint:   git config pull.rebase false  # merge
+hint:   git config pull.rebase true   # rebase
+hint:   git config pull.ff only       # fast-forward only
+hint:
+hint: You can replace "git config" with "git config --global" to set a default
+hint: preference for all repositories. You can also pass --rebase, --no-rebase,
+hint: or --ff-only on the command line to override the configured default per
+hint: invocation.
+fatal: Need to specify how to reconcile divergent branches.
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git pull origin main --rebase
+From https://github.com/VarshaRajS/eks-three-tier-archritecture
+ * branch            main       -> FETCH_HEAD
+Successfully rebased and updated refs/heads/main.
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git push origin main
+Enumerating objects: 9, done.
+Counting objects: 100% (9/9), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (5/5), 592 bytes | 592.00 KiB/s, done.
+Total 5 (delta 1), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (1/1), completed with 1 local object.
+To https://github.com/VarshaRajS/eks-three-tier-archritecture.git
+   5014ed9..a747e1a  main -> main
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git checkout main
+Already on 'main'
+Your branch is up to date with 'origin/main'.
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ git pull
+Already up to date.
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ ls
+network-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/network $ cd ..
+varshas ~/eksproject/eks-three-tier-archritecture/stacks $ ls
+ec2     eks     network
+varshas ~/eksproject/eks-three-tier-archritecture/stacks $ cdeks
+zsh: command not found: cdeks
+varshas ~/eksproject/eks-three-tier-archritecture/stacks $ cd eks
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/eks $ nvim cluster-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/eks $ nvim cluster-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/eks $ cat cluster-config.yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS EKS Cluster
+
+Resources:
+  # EKS Cluster
+  EKSCluster:
+    Type: AWS::EKS::Cluster
+    DeletionPolicy: Retain
+    Properties:
+      Name: us-sandbox-cluster
+      Version: "1.32"
+      RoleArn: "arn:aws:iam::536612919621:role/us-sandbox-cluster-role"
+      KubernetesNetworkConfig:
+        IpFamily: ipv4
+        ServiceIpv4Cidr: 10.100.0.0/16
+      ResourcesVpcConfig:
+        EndpointPrivateAccess: true
+        EndpointPublicAccess: false
+        PublicAccessCidrs:
+          - "3.109.105.142/32"
+        SecurityGroupIds:
+          - "sg-0587edc0855d0c3e5"
+        SubnetIds:
+          - "subnet-0b324a0aaff56f7d2"
+          - "subnet-0314c0542147a74bd"
+          - "subnet-0b324a0aaff56f7d2"
+          - "subnet-0b87b8d9ee83782a4"
+          - "subnet-02ce6ae86e783f352"
+          - "subnet-0b5e1af36a37af395"
+          - "subnet-03f03906bc53c38ba"
+          - "subnet-03c4a3bcb705369af"
+      Tags:
+        - Key: client
+          Value: us-clients
+        - Key: provisionedby
+          Value: terraform
+        - Key: createdby
+          Value: infrastructure-team
+        - Key: Envinonment
+          Value: us-sandbox-cluster
+
+  EKSClusterAddOnsEFSCSI:
+    Type: AWS::EKS::Addon
+    DeletionPolicy: Retain
+    Properties:
+      AddonName: aws-efs-csi-driver
+      AddonVersion: "v2.1.3-eksbuild.1"
+      ClusterName: us-sandbox-cluster
+      ResolveConflicts: OVERWRITE
+
+  EKSClusterAddOnsEBSCSI:
+    Type: AWS::EKS::Addon
+    DeletionPolicy: Retain
+    Properties:
+      AddonName: aws-ebs-csi-driver
+      AddonVersion: "v1.38.1-eksbuild.2"
+      ClusterName: us-sandbox-cluster
+      ServiceAccountRoleArn: arn:aws:iam::536612919621:role/us-sandbox-aws-ebs-csi-driver
+      ResolveConflicts: OVERWRITE
+
+  EKSClusterAddOnsVPCCNI:
+    Type: AWS::EKS::Addon
+    DeletionPolicy: Retain
+    Properties:
+      AddonName: vpc-cni
+      AddonVersion: "v1.19.2-eksbuild.1"
+      ClusterName: us-sandbox-cluster
+      ResolveConflicts: OVERWRITE
+      ConfigurationValues:
+        Fn::Sub: |
+          {
+            "env": {
+              "ENABLE_POD_ENI": "true"
+            }
+          }
+
+  EKSClusterAddOnsKubeProxy:
+    Type: AWS::EKS::Addon
+    DeletionPolicy: Retain
+    Properties:
+      AddonName: kube-proxy
+      AddonVersion: "v1.30.6-eksbuild.3"
+      ClusterName: us-sandbox-cluster
+      ResolveConflicts: OVERWRITE
+
+
+
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/eks $ nvim cluster-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/eks $ cat cluster-config.yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS EKS Cluster
+
+Resources:
+
+  EKSCluster:
+    Type: AWS::EKS::Cluster
+    DeletionPolicy: Retain
+    Properties:
+      Name: sandbox-cluster
+      Version: "1.32"
+      RoleArn: "arn:aws:iam::767398111149:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS"
+      KubernetesNetworkConfig:
+        IpFamily: ipv4
+        ServiceIpv4Cidr: 10.100.0.0/16
+      ResourcesVpcConfig:
+        EndpointPrivateAccess: true
+        EndpointPublicAccess: false
+        PublicAccessCidrs:
+          - "3.109.105.142/32"
+        SecurityGroupIds:
+          - "sg-02e0affa752353c1a"
+        SubnetIds:
+          - "subnet-0c12641a01190da9c"
+          - "subnet-09a423c0a6bde4c32"
+          - "subnet-0afa393c4041daa00"
+          - "subnet-04fd8d9586d4f33b8"
+      Tags:
+        - Key: cluster
+          Value: sandbox
+        - Key: provisionedby
+          Value: cloud-formation-template
+
+  EKSClusterAddOnsEFSCSI:
+    Type: AWS::EKS::Addon
+    DeletionPolicy: Retain
+    Properties:
+      AddonName: aws-efs-csi-driver
+      AddonVersion: "v2.1.3-eksbuild.1"
+      ClusterName: us-sandbox-cluster
+      ResolveConflicts: OVERWRITE
+
+  EKSClusterAddOnsEBSCSI:
+    Type: AWS::EKS::Addon
+    DeletionPolicy: Retain
+    Properties:
+      AddonName: aws-ebs-csi-driver
+      AddonVersion: "v1.38.1-eksbuild.2"
+      ClusterName: us-sandbox-cluster
+      ServiceAccountRoleArn: arn:aws:iam::536612919621:role/us-sandbox-aws-ebs-csi-driver
+      ResolveConflicts: OVERWRITE
+
+  EKSClusterAddOnsVPCCNI:
+    Type: AWS::EKS::Addon
+    DeletionPolicy: Retain
+    Properties:
+      AddonName: vpc-cni
+      AddonVersion: "v1.19.2-eksbuild.1"
+      ClusterName: us-sandbox-cluster
+      ResolveConflicts: OVERWRITE
+      ConfigurationValues:
+        Fn::Sub: |
+          {
+            "env": {
+              "ENABLE_POD_ENI": "true"
+            }
+          }
+
+  EKSClusterAddOnsKubeProxy:
+    Type: AWS::EKS::Addon
+    DeletionPolicy: Retain
+    Properties:
+      AddonName: kube-proxy
+      AddonVersion: "v1.30.6-eksbuild.3"
+      ClusterName: us-sandbox-cluster
+      ResolveConflicts: OVERWRITE
+
+
+
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/eks $ url ifconfig.me
+zsh: command not found: url
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/eks $ curl ifconfig.me
+2401:4900:91d9:3cdf:d4b7:a484:b18c:d454%
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/eks $ ifconfig
+lo0: flags=8049<UP,LOOPBACK,RUNNING,MULTICAST> mtu 16384
+	options=1203<RXCSUM,TXCSUM,TXSTATUS,SW_TIMESTAMP>
+	inet 127.0.0.1 netmask 0xff000000
+	inet6 ::1 prefixlen 128
+	inet6 fe80::1%lo0 prefixlen 64 scopeid 0x1
+	nd6 options=201<PERFORMNUD,DAD>
+gif0: flags=8010<POINTOPOINT,MULTICAST> mtu 1280
+stf0: flags=0<> mtu 1280
+anpi0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	options=400<CHANNEL_IO>
+	ether 56:bd:b1:e8:fc:6f
+	media: none
+	status: inactive
+anpi1: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	options=400<CHANNEL_IO>
+	ether 56:bd:b1:e8:fc:70
+	media: none
+	status: inactive
+en3: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	options=400<CHANNEL_IO>
+	ether 56:bd:b1:e8:fc:4f
+	nd6 options=201<PERFORMNUD,DAD>
+	media: none
+	status: inactive
+en4: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	options=400<CHANNEL_IO>
+	ether 56:bd:b1:e8:fc:50
+	nd6 options=201<PERFORMNUD,DAD>
+	media: none
+	status: inactive
+en1: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500
+	options=460<TSO4,TSO6,CHANNEL_IO>
+	ether 36:d0:01:73:5b:c0
+	media: autoselect <full-duplex>
+	status: inactive
+en2: flags=8963<UP,BROADCAST,SMART,RUNNING,PROMISC,SIMPLEX,MULTICAST> mtu 1500
+	options=460<TSO4,TSO6,CHANNEL_IO>
+	ether 36:d0:01:73:5b:c4
+	media: autoselect <full-duplex>
+	status: inactive
+bridge0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	options=63<RXCSUM,TXCSUM,TSO4,TSO6>
+	ether 36:d0:01:73:5b:c0
+	Configuration:
+		id 0:0:0:0:0:0 priority 0 hellotime 0 fwddelay 0
+		maxage 0 holdcnt 0 proto stp maxaddr 100 timeout 1200
+		root id 0:0:0:0:0:0 priority 0 ifcost 0 port 0
+		ipfilter disabled flags 0x0
+	member: en1 flags=3<LEARNING,DISCOVER>
+	        ifmaxaddr 0 port 8 priority 0 path cost 0
+	member: en2 flags=3<LEARNING,DISCOVER>
+	        ifmaxaddr 0 port 9 priority 0 path cost 0
+	nd6 options=201<PERFORMNUD,DAD>
+	media: <unknown type>
+	status: inactive
+ap1: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	options=6460<TSO4,TSO6,CHANNEL_IO,PARTIAL_CSUM,ZEROINVERT_CSUM>
+	ether 16:38:11:ed:2d:a6
+	nd6 options=201<PERFORMNUD,DAD>
+	media: autoselect (none)
+	status: inactive
+en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	options=6460<TSO4,TSO6,CHANNEL_IO,PARTIAL_CSUM,ZEROINVERT_CSUM>
+	ether 1a:a0:6d:0d:da:b1
+	inet6 fe80::14a1:98fc:5b73:6182%en0 prefixlen 64 secured scopeid 0xb
+	inet6 2401:4900:91d9:3cdf:4ad:8ca0:1032:e076 prefixlen 64 autoconf secured
+	inet6 2401:4900:91d9:3cdf:d4b7:a484:b18c:d454 prefixlen 64 autoconf temporary
+	inet 10.217.191.191 netmask 0xffffff00 broadcast 10.217.191.255
+	nd6 options=201<PERFORMNUD,DAD>
+	media: autoselect
+	status: active
+awdl0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	options=6460<TSO4,TSO6,CHANNEL_IO,PARTIAL_CSUM,ZEROINVERT_CSUM>
+	ether 9a:0d:b3:c4:06:c1
+	inet6 fe80::980d:b3ff:fec4:6c1%awdl0 prefixlen 64 scopeid 0xd
+	nd6 options=201<PERFORMNUD,DAD>
+	media: autoselect
+	status: active
+llw0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	options=400<CHANNEL_IO>
+	ether 9a:0d:b3:c4:06:c1
+	inet6 fe80::980d:b3ff:fec4:6c1%llw0 prefixlen 64 scopeid 0xe
+	nd6 options=201<PERFORMNUD,DAD>
+	media: autoselect (none)
+utun0: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1500
+	inet6 fe80::95f5:4b7c:ca9:adca%utun0 prefixlen 64 scopeid 0xf
+	nd6 options=201<PERFORMNUD,DAD>
+utun1: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1380
+	inet6 fe80::3e76:acd7:1e4c:9058%utun1 prefixlen 64 scopeid 0x10
+	nd6 options=201<PERFORMNUD,DAD>
+utun2: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 2000
+	inet6 fe80::e575:2d8c:8936:9a3%utun2 prefixlen 64 scopeid 0x11
+	nd6 options=201<PERFORMNUD,DAD>
+utun3: flags=8051<UP,POINTOPOINT,RUNNING,MULTICAST> mtu 1000
+	inet6 fe80::ce81:b1c:bd2c:69e%utun3 prefixlen 64 scopeid 0x12
+	nd6 options=201<PERFORMNUD,DAD>
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/eks $ ip addr
+zsh: command not found: ip
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/eks $ nvim cluster-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/eks $ curl -4 ifconfig.me
+
+223.237.168.149%
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/eks $ curl -4 ifconfig.me
+
+223.237.168.149%
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/eks $ nvim cluster-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/eks $ nvim cluster-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/eks $ ls
+cluster-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/eks $ cd ..
+varshas ~/eksproject/eks-three-tier-archritecture/stacks $ cd ec2
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/ec2 $ nodegroup1-template.yaml
+zsh: command not found: nodegroup1-template.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/ec2 $ nvim nodegroup1-template.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/ec2 $ nvim nodegroup2-template.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/ec2 $ mv nodegroup1-template.yaml nodegroup1-launch-template.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/ec2 $ mv nodegroup2-template.yaml nodegroup2-launch-template.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/ec2 $ ls
+nodegroup1-launch-template.yaml nodegroup2-launch-template.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/ec2 $ cd ..
+varshas ~/eksproject/eks-three-tier-archritecture/stacks $ cd eks
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/eks $ ls
+cluster-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/eks $ nvim cluster-config.yaml
+varshas ~/eksproject/eks-three-tier-archritecture/stacks/eks $ cat cluster-config.yaml
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS EKS Cluster
+
+Resources:
+
+  EKSCluster:
+    Type: AWS::EKS::Cluster
+    DeletionPolicy: Retain
+    Properties:
+      Name: sandbox-cluster
+      Version: "1.32"
+      RoleArn: "arn:aws:iam::767398111149:role/aws-service-role/eks.amazonaws.com/AWSServiceRoleForAmazonEKS"
+      KubernetesNetworkConfig:
+        IpFamily: ipv4
+        ServiceIpv4Cidr: 10.100.0.0/16
+      ResourcesVpcConfig:
+        EndpointPrivateAccess: true
+        EndpointPublicAccess: true
+        PublicAccessCidrs:
+          - "223.237.168.149/32"
+        SecurityGroupIds:
+          - "sg-02e0affa752353c1a"
+        SubnetIds:
+          - "subnet-0c12641a01190da9c"
+          - "subnet-09a423c0a6bde4c32"
+          - "subnet-0afa393c4041daa00"
+          - "subnet-04fd8d9586d4f33b8"
+      Tags:
+        - Key: cluster
+          Value: sandbox
+        - Key: provisionedby
+          Value: cloud-formation-template
+
+  EKSClusterAddOnsEFSCSI:
+    Type: AWS::EKS::Addon
+    DeletionPolicy: Retain
+    Properties:
+      AddonName: aws-efs-csi-driver
+      AddonVersion: "v2.1.3-eksbuild.1"
+      ClusterName: sandbox-cluster
+      ResolveConflicts: OVERWRITE
+
+  EKSClusterAddOnsEBSCSI:
+    Type: AWS::EKS::Addon
+    DeletionPolicy: Retain
+    Properties:
+      AddonName: aws-ebs-csi-driver
+      AddonVersion: "v1.38.1-eksbuild.2"
+      ClusterName: sandbox-cluster
+      ServiceAccountRoleArn: arn:aws:iam::767398111149:role/sandbox-cluster-ebs-csi-driver
+      ResolveConflicts: OVERWRITE
+
+  EKSClusterAddOnsVPCCNI:
+    Type: AWS::EKS::Addon
+    DeletionPolicy: Retain
+    Properties:
+      AddonName: vpc-cni
+      AddonVersion: "v1.19.2-eksbuild.1"
+      ClusterName: sandbox-cluster
+      ResolveConflicts: OVERWRITE
+
+  EKSClusterAddOnsKubeProxy:
+    Type: AWS::EKS::Addon
+    DeletionPolicy: Retain
+    Properties:
+      AddonName: kube-proxy
+      AddonVersion: "v1.30.6-eksbuild.3"
+      ClusterName: sandbox-cluster
+      ResolveConflicts: OVERWRITE
+
+  GeneralNodeGroup1:
+    Type: AWS::EKS::Nodegroup
+    DeletionPolicy: Delete
+    Properties:
+      ClusterName: sandbox-cluster
+      NodegroupName: general-worker-nodegroup-1
+      ScalingConfig:
+        MinSize: 1
+        DesiredSize: 1
+        MaxSize: 3
+      Subnets:
+        - "subnet-09a423c0a6bde4c32 "
+        - "subnet-0afa393c4041daa00 "
+      CapacityType: ON_DEMAND
+      NodeRole: arn:aws:iam::767398111149:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup
+      Tags:
+        provisionedby: CloudFormation
+        Environment: sandbox-cluster
+      Taints:
+        - Effect: NO_SCHEDULE
+          key: app
+          value: true
+      Version: "1.32"
+
+  GeneralNodeGroup2:
+    Type: AWS::EKS::Nodegroup
+    DeletionPolicy: Delete
+    Properties:
+      ClusterName: sandbox-cluster
+      NodegroupName: general-worker-nodegroup-2
+      ScalingConfig:
+        MinSize: 1
+        DesiredSize: 1
+        MaxSize: 3
+      Subnets:
+        - "subnet-0c12641a01190da9c"
+        - "subnet-04fd8d9586d4f33b8"
+      CapacityType: ON_DEMAND
+      NodeRole: arn:aws:iam::767398111149:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup
+      Tags:
+        provisionedby: CloudFormation
+        Environment: sandbox-cluster
+      Taints:
+        - Effect: NO_SCHEDULE
+          key: app
+          value: true
+      Version: "1.32"
+cluster-config.yaml [+]                                                                     107,25         91%
+-- INSERT --
